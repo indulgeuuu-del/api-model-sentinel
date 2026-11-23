@@ -1,0 +1,16 @@
+node_modules/
+data/
+.data*/
+.env*
+!.env.example
+playwright-report/
+test-results/
+coverage/
+dist/
+*.log
+*.dpapi
+*.enc
+*.key
+*.local.json
+.DS_Store
+Thumbs.db

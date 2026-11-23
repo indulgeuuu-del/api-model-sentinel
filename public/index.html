@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="description"
+      content="在自己的电脑上，持续观察第三方 API 的答题质量、可用性和消耗。"
+    />
+    <title>Sentinel · API 模型哨兵</title>
+    <link rel="icon" href="/icon.svg" />
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <a href="#main" class="skip">跳到主要内容</a>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Sentinel 首页"
+        ><img src="/icon.svg" width="32" height="32" alt="" /><span
+          >SENTINEL<small>API 模型哨兵</small></span
+        ></a
+      >
+      <div class="top-actions">
+        <span id="connection" class="connection">正在连接</span
+        ><button id="help-btn" class="text-button">使用说明</button
+        ><button id="lock-btn" class="text-button">锁定面板</button>
+      </div>
+    </header>
+    <div id="demo-banner" class="banner demo" hidden>
+      演示模式 · 所有结果来自本地模拟，不调用供应商，也不会停止真实会话。
+    </div>
+    <div id="fatal-banner" class="banner error" role="alert" hidden></div>
+    <div class="workspace">
+      <aside class="sidebar" aria-label="模型配置">
+        <div class="side-heading">
+          <h2>监测配置 <span id="profile-count">0</span></h2>
+          <button id="new-btn" class="add-button" aria-label="新建配置">＋</button>
+        </div>
+        <div id="profiles" class="profile-list"></div>
+        <div class="side-footer">
+          <button id="import-btn" class="text-button">导入配置</button
+          ><button id="config-export-btn" class="text-button">导出配置</button
+          ><input id="import-file" type="file" accept="application/json,.json" hidden />
+          <p>配置在本机加密保存。<br />导出配置不含 API Key。</p>
+          <button id="stop-all-btn" class="quiet-button">暂停所有监测</button>
+        </div>
+      </aside>
+      <main id="main" tabindex="-1">
+        <section id="empty" class="empty-state" hidden>
+          <span class="eyebrow">YOUR OWN OBSERVATORY</span>
+          <h1>给模型表现，留一份记录。</h1>
+          <p>
+            添加一个 API 配置，使用有确定答案的题目持续检测。<br />正确性、连通性、用量分别记录，结论有据可查。
+          </p>
+          <button id="empty-new-btn" class="button primary">添加第一个配置</button>
+          <div class="empty-features">
+            <span>后台独立运行</span><span>本地保存</span><span>可复算探针</span>
+          </div>
+        </section>
+        <div id="detail" hidden>
+          <section class="hero">
+            <div>
+              <span class="eyebrow">MODEL OBSERVATORY</span>
+              <div class="title-row">
+                <h1 id="profile-title"></h1>
+                <span id="monitor-state" class="badge"></span>
+              </div>
+              <p id="profile-subtitle" class="muted"></p>
+              <p id="next-run" class="next-run"></p>
+            </div>
+            <div class="hero-actions">
+              <button id="edit-btn" class="button">编辑配置</button
+              ><button id="run-btn" class="button">检测一次</button
+              ><button id="start-btn" class="button primary">开启监测</button
+              ><button id="pause-btn" class="button danger" hidden>暂停监测</button>
+            </div>
+          </section>
+          <div id="incident" class="incident" role="status" hidden></div>
+          <section class="metrics" aria-label="监测统计">
+            <article>
+              <span>答题通过率</span><strong id="pass-rate">—</strong
+              ><small id="pass-detail">等待可判定样本</small>
+            </article>
+            <article>
+              <span>请求可用率</span><strong id="availability">—</strong
+              ><small>收到完整响应的比例</small>
+            </article>
+            <article>
+              <span>响应 P95</span><strong id="latency">—</strong><small>仅统计完整响应</small>
+            </article>
+            <article>
+              <span>已知 token 消耗</span><strong id="tokens">0</strong
+              ><small id="usage-detail">未估算未知用量</small>
+            </article>
+          </section>
+          <div class="tabs" role="tablist" aria-label="详情视图">
+            <button
+              role="tab"
+              id="tab-overview"
+              data-tab="overview"
+              aria-selected="true"
+              aria-controls="panel-overview"
+            >
+              运行概览</button
+            ><button
+              role="tab"
+              id="tab-history"
+              data-tab="history"
+              aria-selected="false"
+              aria-controls="panel-history"
+              tabindex="-1"
+            >
+              检测记录</button
+            ><button
+              role="tab"
+              id="tab-probes"
+              data-tab="probes"
+              aria-selected="false"
+              aria-controls="panel-probes"
+              tabindex="-1"
+            >
+              探针与标准答案</button
+            ><button
+              role="tab"
+              id="tab-compare"
+              data-tab="compare"
+              aria-selected="false"
+              aria-controls="panel-compare"
+              tabindex="-1"
+            >
+              同题比较
+            </button>
+          </div>
+          <section
+            id="panel-overview"
+            class="tab-panel"
+            role="tabpanel"
+            aria-labelledby="tab-overview"
+          >
+            <div class="overview-grid">
+              <article class="card">
+                <div class="card-title">
+                  <h2>最近表现</h2>
+                  <span class="muted small">从旧到新 · 每格一次请求</span>
+                </div>
+                <div id="timeline" class="timeline" aria-label="最近检测结果"></div>
+                <div class="legend">
+                  <span class="pass">● 正确</span><span class="fail">● 答错</span
+                  ><span class="inconclusive">● 未能判定</span
+                  ><span class="error">● 异常 / 超时</span>
+                </div>
+                <p id="trend" class="muted small"></p>
+              </article>
+              <article class="card">
+                <h2>正在执行的规则</h2>
+                <dl id="rules" class="rules"></dl>
+                <p id="power-note" class="muted small"></p>
+              </article>
+              <article class="card wide">
+                <div class="card-title">
+                  <h2>最近一次结果</h2>
+                  <span id="latest-time" class="muted small"></span>
+                </div>
+                <div id="latest"></div>
+              </article>
+              <article class="card wide">
+                <h2>按能力维度观察</h2>
+                <div id="family-stats" class="family-stats"></div>
+                <p class="muted small">
+                  一次题目结果只说明该次表现。单题和供应商返回的模型名称不能证明实际模型身份；趋势只使用当前配置的可判定样本。
+                </p>
+              </article>
+            </div>
+          </section>
+          <section
+            id="panel-history"
+            class="tab-panel"
+            role="tabpanel"
+            aria-labelledby="tab-history"
+            hidden
+          >
+            <article class="card">
+              <div class="card-title">
+                <div>
+                  <h2>可追溯的检测记录</h2>
+                  <p class="muted small">
+                    最多保留全局最近 1,000 条。点击记录查看实际提示词、标准答案和用量。
+                  </p>
+                </div>
+                <div class="row">
+                  <select id="history-filter" aria-label="筛选结果">
+                    <option value="all">全部结果</option>
+                    <option value="pass">正确</option>
+                    <option value="fail">答错</option>
+                    <option value="inconclusive">未能判定</option>
+                    <option value="error">异常 / 超时</option></select
+                  ><button id="csv-btn" class="button small">CSV</button
+                  ><button id="json-btn" class="button small">JSON</button>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>时间 / 来源</th>
+                      <th>结果</th>
+                      <th>答案 / 说明</th>
+                      <th>耗时</th>
+                      <th>用量</th>
+                    </tr>
+                  </thead>
+                  <tbody id="history"></tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+          <section
+            id="panel-probes"
+            class="tab-panel"
+            role="tabpanel"
+            aria-labelledby="tab-probes"
+            hidden
+          >
+            <article class="card">
+              <div class="card-title">
+                <div>
+                  <h2>提示词透明，标准答案可复算</h2>
+                  <p class="muted small">
+                    原糖果题逐字保留；变体题覆盖五个维度，每轮只发一题，不暗中追加请求。
+                  </p>
+                </div>
+                <select id="probe-family" aria-label="预览题目">
+                  <option value="original">原糖果题</option>
+                  <option value="0">糖果变体</option>
+                  <option value="1">运算与约束</option>
+                  <option value="2">最短路径</option>
+                  <option value="3">表格筛选</option>
+                  <option value="4">结构化指令</option>
+                </select>
+              </div>
+              <pre id="probe-prompt"></pre>
+              <div class="answer-key">
+                标准答案 <code id="probe-answer"></code
+                ><span id="probe-version" class="muted small"></span>
+              </div>
+              <p class="muted small">
+                糖果题允许凭手感预先选择两种形状的取出数量。原题答案 21
+                对应这一策略；变体题将规则明确写出。关闭推理或过低预算可能影响某些模型的表现，比较时应保持参数一致。
+              </p>
+            </article>
+          </section>
+          <section
+            id="panel-compare"
+            class="tab-panel"
+            role="tabpanel"
+            aria-labelledby="tab-compare"
+            hidden
+          >
+            <article class="card">
+              <span class="eyebrow">SAME QUESTION, VISIBLE EVIDENCE</span>
+              <h2>两个配置，同一道题。</h2>
+              <p class="muted">
+                给两个已暂停的配置发送相同的随机糖果变体。共发出两次请求，各自沿用预算和推理设置；结果保存在检测记录中。
+              </p>
+              <div class="compare-controls">
+                <select id="compare-a" aria-label="比较配置A"></select
+                ><span>与</span
+                ><select id="compare-b" aria-label="比较配置B"></select
+                ><button id="compare-btn" class="button primary">开始同题比较</button>
+              </div>
+              <div id="compare-result" class="muted" role="status"></div>
+            </article>
+          </section>
+        </div>
+        <footer class="page-footer">
+          <span>Sentinel v1.0.0 · 本机运行 · 无遥测</span><span id="server-note"></span>
+        </footer>
+      </main>
+    </div>
+    <dialog id="profile-dialog" aria-labelledby="profile-dialog-title">
+      <form id="profile-form">
+        <div class="dialog-heading">
+          <h2 id="profile-dialog-title">新建配置</h2>
+          <button
+            type="button"
+            data-close="profile-dialog"
+            class="text-button"
+            aria-label="关闭配置窗口"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="form-grid">
+          <label
+            >配置名称<input
+              name="name"
+              required
+              maxlength="80"
+              placeholder="例如：供应商 A · 日常监测" /></label
+          ><label
+            >模型名称<input
+              name="model"
+              required
+              maxlength="180"
+              placeholder="供应商提供的模型 ID" /></label
+          ><label class="full"
+            >API URL<input
+              name="baseUrl"
+              type="url"
+              required
+              placeholder="https://api.example.com/v1"
+            /><small>支持基础地址或完整 responses / chat/completions 路径。</small></label
+          ><label
+            >协议<select name="protocol">
+              <option value="responses">Responses</option>
+              <option value="chat">Chat Completions</option>
+            </select></label
+          ><label
+            >API Key<input
+              name="apiKey"
+              type="password"
+              autocomplete="new-password"
+              maxlength="4096"
+              placeholder="编辑时留空保留已保存的 Key" /></label
+          ><label
+            >探针集<select name="pack">
+              <option value="original">原糖果题 · 每次一题</option>
+              <option value="rotating">五维变体轮换 · 每次一题</option>
+            </select></label
+          ><label
+            >间隔（分钟）<input
+              name="intervalMin"
+              type="number"
+              min="1"
+              max="1440"
+              value="30"
+              required /></label
+          ><label
+            >超时（秒）<input
+              name="timeoutSec"
+              type="number"
+              min="5"
+              max="300"
+              value="60"
+              required /></label
+          ><label
+            >输出预算（token）<input
+              name="outputBudget"
+              type="number"
+              min="16"
+              max="32768"
+              value="16"
+              required /></label
+          ><label
+            >推理强度<select name="reasoningEffort">
+              <option value="none">关闭（none）</option>
+              <option value="minimal">最低（minimal）</option>
+              <option value="low">低（low）</option>
+              <option value="medium">中（medium）</option>
+              <option value="high">高（high）</option>
+              <option value="xhigh">很高（xhigh）</option>
+              <option value="default">供应商默认（不发送）</option>
+            </select></label
+          ><label
+            >Temperature<input
+              name="temperature"
+              type="number"
+              min="0"
+              max="2"
+              step="0.01"
+              placeholder="留空不发送" /></label
+          ><label class="full"
+            >分组 / 版本标签<input
+              name="contextTag"
+              maxlength="120"
+              placeholder="例如：a 分组 · 2026-11；修改后单独统计"
+            /><small>同一个 Key 在供应商端切换分组时，请更新此标签。</small></label
+          ><label class="full"
+            >Chat token 参数<select name="chatTokenField">
+              <option value="auto">按模型名称选择（可手动覆盖）</option>
+              <option value="max_completion_tokens">max_completion_tokens</option>
+              <option value="max_tokens">max_tokens</option>
+            </select></label
+          >
+        </div>
+        <label class="check"
+          ><input name="clearApiKey" type="checkbox" /><span
+            >清除已保存的 API Key（仅用于无需认证的本机接口）</span
+          ></label
+        >
+        <label class="check"
+          ><input name="keepAwake" type="checkbox" checked /><span
+            >监测时防止电脑因空闲自动睡眠（Windows，屏幕可熄灭）</span
+          ></label
+        ><label class="check"
+          ><input name="guard" type="checkbox" /><span
+            >自动答错时停止本机 Codex 活动会话
+            <small>实验功能 · Windows Desktop · 开启前检查连接</small></span
+          ></label
+        >
+        <p class="muted small">
+          每次只请求一次，超时和接口异常继续下一周期。完整错误答案会暂停监测。预算和关闭推理是请求参数，供应商可能不执行；费用提示不改变答题判定。建议为结构化题预留足够输出预算。
+        </p>
+        <p id="form-error" class="form-error" role="alert"></p>
+        <div class="dialog-actions">
+          <button id="delete-btn" type="button" class="text-button danger" hidden>
+            删除此配置
+          </button>
+          <div class="row">
+            <button type="button" data-close="profile-dialog" class="button">取消</button
+            ><button type="submit" id="save-btn" class="button primary">保存配置</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="auth-dialog" aria-labelledby="auth-title">
+      <h2 id="auth-title">连接你的本机哨兵</h2>
+      <p class="muted">
+        通过启动器打开面板即可自动连接，也可粘贴终端显示的本机连接码。此处不是供应商 API Key。
+      </p>
+      <form id="auth-form">
+        <label
+          >本机连接码<input id="auth-token" type="password" required autocomplete="off"
+        /></label>
+        <p id="auth-error" class="form-error" role="alert"></p>
+        <button class="button primary">连接面板</button>
+      </form>
+    </dialog>
+    <dialog id="record-dialog" aria-labelledby="record-title">
+      <div class="dialog-heading">
+        <h2 id="record-title">检测详情</h2>
+        <button data-close="record-dialog" class="text-button" aria-label="关闭检测详情">✕</button>
+      </div>
+      <div id="record-detail"></div>
+    </dialog>
+    <dialog id="help-dialog" aria-labelledby="help-title">
+      <div class="dialog-heading">
+        <h2 id="help-title">从这里开始</h2>
+        <button data-close="help-dialog" class="text-button" aria-label="关闭使用说明">✕</button>
+      </div>
+      <ol>
+        <li>新增配置，填写供应商地址、模型和 Key。没有 API Key 也可在演示模式体验。</li>
+        <li>先点“检测一次”确认协议可用，再开启后台监测。</li>
+        <li>
+          最小化或关闭浏览器不影响检测。手动睡眠、关机或断网会影响请求；重新启动服务会恢复已开启的监测。
+        </li>
+        <li>答错会暂停该配置；接口错误、未完成和超时按原间隔继续。不会自动提高预算或额外重试。</li>
+        <li>
+          可通过“导入配置”加载旧版配置
+          JSON，导入后保持暂停且关闭本机停止保护。旧版后台加密配置可通过 CLI migrate 导入。
+        </li>
+      </ol>
+      <p class="muted">
+        配置和记录加密存于本机，无遥测。Windows 主密钥由当前用户 DPAPI 保护，macOS/Linux
+        使用权限为600的本机密钥文件。本机连接码可控制面板，请妥善保管。Codex停止保护依赖私有IPC，升级后可能不兼容；它不删除会话、不杀进程，也不撤销已发生动作。监测结果不是供应商模型身份的证明。
+      </p>
+    </dialog>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  </body>
+</html>

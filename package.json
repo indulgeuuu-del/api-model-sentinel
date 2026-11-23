@@ -1,0 +1,50 @@
+{
+  "name": "api-model-sentinel",
+  "version": "1.0.0",
+  "description": "Local-first, reproducible quality and availability monitoring for OpenAI-compatible APIs.",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "bin": {
+    "model-sentinel": "bin/sentinel.cjs"
+  },
+  "scripts": {
+    "start": "node bin/sentinel.cjs serve --open",
+    "demo": "node bin/sentinel.cjs serve --demo --port 17656 --open",
+    "test": "node --test test/*.test.cjs",
+    "test:e2e": "playwright test",
+    "check": "node scripts/check.cjs && prettier --check .",
+    "format": "prettier --write .",
+    "verify": "npm run check && npm test && npm run test:e2e",
+    "package": "node scripts/package.cjs"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "public/",
+    "scripts/",
+    "docs/",
+    "README.md",
+    "README.en.md",
+    "LICENSE",
+    "SECURITY.md",
+    "Start.cmd",
+    "Stop.cmd",
+    "Demo.cmd",
+    "package.json",
+    "package-lock.json"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/indulgeuuu-del/api-model-sentinel.git"
+  },
+  "bugs": {
+    "url": "https://github.com/indulgeuuu-del/api-model-sentinel/issues"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1",
+    "prettier": "3.10.1"
+  }
+}
