@@ -13,7 +13,7 @@ function collect(relative) {
   if (stat.isDirectory())
     for (const name of fs.readdirSync(target).sort()) collect(entry + '/' + name);
   else {
-    if (/\.(enc|dpapi|key|log|local\.json)$/.test(entry))
+    if (/\.(enc|dpapi|key|log|local\.json(?:\.[a-f0-9]+\.tmp)?)$/.test(entry))
       throw Error('Runtime data cannot be packaged');
     files.push(entry);
   }

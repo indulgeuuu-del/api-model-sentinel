@@ -30,6 +30,14 @@ test('Wilson interval conveys small-sample uncertainty; trend needs both windows
   assert.equal(s.recentRate, 0);
   assert.equal(s.baselineRate, 1);
 });
+test('a late completed cancellation cannot inflate availability above 100 percent', () => {
+  const stats = summarize([
+    { status: 'pass', responseComplete: true, durationMs: 10 },
+    { status: 'cancelled', responseComplete: true, durationMs: 9999 },
+  ]);
+  assert.equal(stats.availability, 1);
+  assert.equal(stats.p95Ms, 10);
+});
 test('CSV cells cannot execute spreadsheet formulas and quoting is reversible', () => {
   const text = csv([['=SUM(1,2)', '+1', '-1', '@cmd', 'safe,"quoted"', 'line\nbreak']]);
   assert.ok(text.includes('"\'=SUM(1,2)"'));

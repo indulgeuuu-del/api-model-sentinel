@@ -243,3 +243,22 @@ test('HTTP failures, malformed responses, secrets and deadlines are handled with
 test('body reader enforces byte limit', async () => {
   await assert.rejects(readBody(new Response('123456'), 5), /上限/);
 });
+test('provider echoes that contradict requested limits warn without vetoing a correct answer', async () => {
+  const result = await runProbe(profile(), probe, {
+    fetchImpl: async () =>
+      new Response(
+        JSON.stringify(
+          responses('21', {
+            reasoning: { effort: 'medium' },
+            max_output_tokens: 1000,
+            usage: { input_tokens: 2, output_tokens: 2 },
+          }),
+        ),
+      ),
+  });
+  assert.equal(result.status, 'pass');
+  assert.equal(result.diagnostic.reasoningEffort, 'medium');
+  assert.equal(result.diagnostic.outputBudget, 1000);
+  assert.ok(result.warnings.some((w) => w.includes('none') && w.includes('medium')));
+  assert.ok(result.warnings.some((w) => w.includes('16') && w.includes('1000')));
+});

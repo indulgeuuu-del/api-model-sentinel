@@ -12,5 +12,6 @@ dist/
 *.enc
 *.key
 *.local.json
+*.local.json.*.tmp
 .DS_Store
 Thumbs.db

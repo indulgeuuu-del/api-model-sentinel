@@ -11,7 +11,7 @@ function wilson(passes, total) {
 function summarize(records) {
   const scored = records.filter((r) => ['pass', 'fail'].includes(r.status)),
     passes = scored.filter((r) => r.status === 'pass').length;
-  const completed = records.filter((r) => r.responseComplete === true);
+  const completed = records.filter((r) => r.responseComplete === true && r.status !== 'cancelled');
   const attempted = records.filter((r) => r.status !== 'cancelled');
   const latency = completed.map((r) => r.durationMs).sort((a, b) => a - b);
   const known = records.filter((r) => r.usage?.total != null);

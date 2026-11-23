@@ -234,6 +234,13 @@ async function runProbe(
       httpStatus: response.status,
       responseStatus: data?.status ?? null,
       finishReason: data?.choices?.[0]?.finish_reason ?? null,
+      reasoningEffort:
+        typeof (data?.reasoning?.effort ?? data?.reasoning_effort) === 'string'
+          ? clip(data?.reasoning?.effort ?? data?.reasoning_effort, 80)
+          : null,
+      outputBudget: number(
+        data?.max_output_tokens ?? data?.max_completion_tokens ?? data?.max_tokens,
+      ),
       error: data?.error ?? null,
     };
     if (!response.ok) diagnostic.hint = httpHint(response.status);
@@ -256,6 +263,22 @@ async function runProbe(
     clearTimeout(timeout);
   }
   const warnings = [];
+  if (
+    profile.reasoningEffort !== 'default' &&
+    diagnostic.reasoningEffort &&
+    diagnostic.reasoningEffort !== profile.reasoningEffort
+  )
+    warnings.push(
+      `请求推理强度 ${profile.reasoningEffort}，供应商回传 ${diagnostic.reasoningEffort}`,
+    );
+  if (
+    diagnostic.outputBudget !== null &&
+    diagnostic.outputBudget !== undefined &&
+    diagnostic.outputBudget !== profile.outputBudget
+  )
+    warnings.push(
+      `请求输出上限 ${profile.outputBudget}，供应商回传上限 ${diagnostic.outputBudget}`,
+    );
   if (result.status === 'pass' && result.responseComplete === false)
     warnings.push('可判定答案正确，但供应商未标记完整完成');
   if (result.usage?.output > profile.outputBudget)

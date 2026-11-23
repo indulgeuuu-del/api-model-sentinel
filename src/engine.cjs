@@ -8,6 +8,9 @@ const { runProbe } = require('./protocol.cjs');
 const { summarize } = require('./stats.cjs');
 const HISTORY_LIMIT = 1000,
   PROFILE_LIMIT = 20;
+const effectivePack = (profile, source) => (source === 'comparison' ? 'rotating' : profile.pack);
+const recordFingerprint = (profile, source) =>
+  fingerprint({ ...profile, pack: effectivePack(profile, source) });
 const freshRuntime = () => ({
   enabled: false,
   nextRunAt: null,
@@ -55,6 +58,11 @@ class Engine extends EventEmitter {
           status: 'inconclusive',
           category: 'interrupted',
           source: runtime.running.source,
+          configurationId: recordFingerprint(profile, runtime.running.source),
+          probePack: effectivePack(profile, runtime.running.source),
+          model: profile.model,
+          protocol: profile.protocol,
+          responseComplete: false,
           timestamp: now(),
           durationMs: 0,
           answer: '',
@@ -149,7 +157,10 @@ class Engine extends EventEmitter {
   snapshot() {
     const profiles = this.state.profiles.map((p) => {
       const records = this.state.records.filter(
-        (r) => r.profileId === p.id && r.configurationId === fingerprint(p),
+        (r) =>
+          r.profileId === p.id &&
+          r.configurationId === fingerprint(p) &&
+          (p.pack !== 'original' || r.source !== 'comparison'),
       );
       return {
         ...publicProfile(p),
@@ -354,7 +365,8 @@ class Engine extends EventEmitter {
           profileId: profile.id,
           source,
           batchId: job.batchId,
-          configurationId: fingerprint(profile),
+          configurationId: recordFingerprint(profile, source),
+          probePack: effectivePack(profile, source),
           scheduledAt: runtime.running?.scheduledAt ?? null,
           schedulingDelayMs:
             runtime.running?.scheduledAt == null
@@ -418,6 +430,11 @@ class Engine extends EventEmitter {
           durationMs: 0,
           status: 'error',
           category: 'internal_error',
+          configurationId: recordFingerprint(profile, source),
+          probePack: effectivePack(profile, source),
+          model: profile.model,
+          protocol: profile.protocol,
+          responseComplete: false,
           reason: runtime.lastReason,
           answer: '',
           usage: null,

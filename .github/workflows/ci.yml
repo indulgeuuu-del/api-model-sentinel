@@ -31,7 +31,7 @@ jobs:
       - run: npm run check
       - run: npm test
       - run: npm run package
-      - run: python -m zipfile -t dist/api-model-sentinel-1.0.0.zip
+      - run: python -c "import json,zipfile; p=json.load(open('package.json')); z=zipfile.ZipFile('dist/'+p['name']+'-'+p['version']+'.zip'); assert z.testzip() is None"
 
   browser:
     name: Browser / desktop + mobile

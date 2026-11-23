@@ -1,6 +1,6 @@
 {
   "name": "api-model-sentinel",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Local-first, reproducible quality and availability monitoring for OpenAI-compatible APIs.",
   "private": true,
   "license": "MIT",

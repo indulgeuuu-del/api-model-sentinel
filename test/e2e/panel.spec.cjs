@@ -142,6 +142,9 @@ test('same-question comparison sends exactly two requests without protection', a
   const rows = sentinel.engine.records();
   expect(rows[0].probe).toEqual(rows[1].probe);
   expect(sentinel.engine.state.incidents).toHaveLength(0);
+  await page.getByRole('tab', { name: '运行概览' }).click();
+  await expect(page.locator('#pass-rate')).toHaveText('—');
+  await expect(page.locator('#usage-detail')).toContainText('0 次当前配置记录');
 });
 test('panel lock preserves backend monitoring and can be unlocked', async ({ page, sentinel }) => {
   await page.getByRole('button', { name: '开启监测' }).click();

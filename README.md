@@ -89,6 +89,8 @@ npm run package
 
 测试使用本机模拟供应商，覆盖协议、SSE、取消/超时、重启恢复、存储故障、认证/跨站防护、桌面适配器以及桌面和移动布局的浏览器交互，不消耗真实API额度。CI在Windows、Ubuntu、macOS和Node22/24上运行核心测试，并在Ubuntu运行浏览器验收。发行包附SHA-256校验文件。
 
+另提供[显式真实供应商验收](docs/live-testing.md)：默认一次请求、逐条保存脱敏结果，批次遇到报告token上限、鉴权失败或用量未知即停止追加请求。2026-11-23对一个授权网关的 `gpt-6-sol` 实测10次全部答对；网关未遵守低推理与输出限制，实际用量及覆盖范围见[验收记录](docs/validation.md)。
+
 查看 [CONTRIBUTING.md](CONTRIBUTING.md)、[测试范围](docs/validation.md)、[路线图](docs/roadmap.md) 与 [CHANGELOG.md](CHANGELOG.md)。欢迎用脱敏复现改进供应商兼容性。
 
 ## 许可证

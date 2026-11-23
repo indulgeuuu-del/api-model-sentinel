@@ -243,7 +243,10 @@
     $('usage-detail').textContent =
       `${stats.total} 次当前配置记录 · ${stats.unknownUsage} 次用量未知`;
     const current = records.filter(
-        (r) => r.profileId === p.id && r.configurationId === p.configurationId,
+        (r) =>
+          r.profileId === p.id &&
+          r.configurationId === p.configurationId &&
+          (p.pack !== 'original' || r.source !== 'comparison'),
       ),
       profileRecords = records.filter((r) => r.profileId === p.id);
     $('timeline').replaceChildren();

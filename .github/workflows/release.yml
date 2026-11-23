@@ -25,7 +25,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run verify
       - run: npm run package
-      - run: python -m zipfile -t dist/api-model-sentinel-1.0.0.zip
+      - run: python -c "import json,zipfile; p=json.load(open('package.json')); z=zipfile.ZipFile('dist/'+p['name']+'-'+p['version']+'.zip'); assert z.testzip() is None"
       - name: Publish ZIP and checksum
         env:
           GH_TOKEN: ${{ github.token }}

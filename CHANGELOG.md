@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.1 — 2026-11-23
+
+- Keep randomized comparisons out of fixed-original statistics, including records from earlier releases.
+- Count interrupted and internal-error attempts in their active configuration and prevent late cancellations from inflating availability.
+- Show provider-reported reasoning/output parameter mismatches as warnings while preserving answer correctness.
+- Add opt-in live acceptance with report preflight, per-response durable saves and bounded batches without retries or budget increases.
+- Record ten passing live requests for one authorized gpt-6-sol gateway, including its failure to honor requested token/reasoning limits.
+- Resolve distribution verification paths from the package version so later releases are checked correctly.
+
 ## 1.0.0 — 2026-11-23
 
 - Extracted the original local prototype into a standalone, MIT-licensed project with no runtime packages.

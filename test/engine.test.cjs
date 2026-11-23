@@ -223,6 +223,8 @@ test('crash recovery records an unknown outcome and waits a full interval withou
   t.after(() => restored.close());
   assert.equal(restored.state.runtimes[p.id].nextRunAt, 5000 + 1800000);
   assert.equal(restored.records()[0].category, 'interrupted');
+  assert.equal(restored.snapshot().profiles[0].stats.total, 1);
+  assert.equal(restored.snapshot().profiles[0].stats.unknownUsage, 1);
   assert.equal(restored.state.incidents[0].phase, 'unknown');
 });
 test('persistence failure prevents provider calls and exposes a fatal status', async (t) => {
@@ -277,6 +279,22 @@ test('comparison preflight does not send a partial batch while readiness is pend
   wait.resolve();
   await assert.rejects(pending);
 });
+test('rotating comparison results do not contaminate fixed-original statistics', async (t) => {
+  const e = engine();
+  t.after(() => e.close());
+  const a = add(e),
+    b = add(e);
+  e.compare([a.id, b.id]);
+  await Promise.all([...e.jobs.values()].map((j) => j.promise));
+  assert.equal(e.records().length, 2);
+  for (const p of e.snapshot().profiles) assert.equal(p.stats.scored, 0);
+  // Older releases tagged comparison records with the fixed-pack fingerprint.
+  const { fingerprint } = require('../src/profile.cjs');
+  for (const r of e.state.records) r.configurationId = fingerprint(e.profile(r.profileId));
+  for (const p of e.snapshot().profiles) assert.equal(p.stats.scored, 0);
+  await e.run(a.id);
+  assert.equal(e.snapshot().profiles.find((p) => p.id === a.id).stats.scored, 1);
+});
 test('statistics are partitioned on settings, group tag and key changes; history remains bounded', async (t) => {
   const e = engine();
   t.after(() => e.close());
@@ -304,6 +322,8 @@ test('provider/internal exceptions are recorded once and do not disable monitori
   await e.start(p.id);
   await assert.rejects(e.run(p.id, 'automatic'));
   assert.equal(e.records()[0].category, 'internal_error');
+  assert.equal(e.snapshot().profiles[0].stats.total, 1);
+  assert.equal(e.snapshot().profiles[0].stats.availability, 0);
   assert.equal(e.state.runtimes[p.id].enabled, true);
 });
 test('invalid stored state is rejected without overwriting it', () => {

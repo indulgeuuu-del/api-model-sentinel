@@ -54,3 +54,5 @@ npm run package
 ```
 
 CI tests Node22/24 on Windows, Ubuntu and macOS, plus Chromium desktop/mobile browser flows on Ubuntu. Tests use loopback mock providers without live credentials. See [validation scope](docs/validation.md), [security policy](SECURITY.md), [contribution guide](CONTRIBUTING.md) and [MIT license](LICENSE).
+
+An [opt-in live acceptance tool](docs/live-testing.md) saves each sanitized response before sending another request and stops a batch on reported token limits, rejected credentials or unknown usage. Ten authorized `gpt-6-sol` requests against one gateway passed on 2026-11-23; that gateway exceeded requested output/reasoning limits. See the [measured scope and usage](docs/validation.md).
